@@ -84,9 +84,8 @@ public class ExcelReader {
 	 * return all test data
 	 * 
 	 * @param includeRunModeNo
-	 *            : true, will include all the test cases & test data
-	 *            irrespective of "Run Mode" false, will include only the test
-	 *            cases & test data for which "Run Mode" is Y
+	 *            true, will include all the test cases & test data irrespective of "Run Mode" 
+	 *            false, will include only the test cases & test data for which "Run Mode" is Y
 	 * @return
 	 */
 	public Map<String, List<Map<String, String>>> readAllTestData(final boolean includeRunModeNo) {
@@ -107,8 +106,8 @@ public class ExcelReader {
 	 * @param testCaseName
 	 *            test case name for fetching data
 	 * @param includeRunModeNo
-	 *            true, will include test data irrespective of "Run Mode" false,
-	 *            will include only the test data for which "Run Mode" is Y
+	 *            true, will include test data irrespective of "Run Mode" 
+	 *            false, will include only the test data for which "Run Mode" is Y
 	 * @return returns test data for given test case
 	 */
 	public List<Map<String, String>> readTestData(final String testCaseName, final boolean includeRunModeNo) {
