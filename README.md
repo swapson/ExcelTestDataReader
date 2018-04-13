@@ -1,6 +1,6 @@
 # Excel Test Case Reader
 - Simple excel test case reader
-- This utility provide ssupport for test data substitution
+- This utility provide support for test data substitution, using which user donot need to update the testcase all time with sample data.
 - User can customize reference data in ExcelReader.loadReferenceData()
 - User can customize test data in ExcelReader.readTestData()
 - Worksheet contains 3 sheet: TestCases, Data, Reference
