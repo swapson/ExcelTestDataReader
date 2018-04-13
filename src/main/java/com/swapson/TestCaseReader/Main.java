@@ -21,7 +21,6 @@ public class Main {
 		ExcelReader er;
 		try {
 			er = new ExcelReader(FILE_PATH);
-			//List<TestCase> testCases = er.getTestCases();
 			Map<String,List<Map<String,String>>> allTestData = er.readAllTestData(false);
 			System.out.println("=== Reference Data ===");
 			System.out.println(ExcelReader.REFERENCE_DATA);

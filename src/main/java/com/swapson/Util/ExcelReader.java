@@ -2,11 +2,15 @@ package com.swapson.Util;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.poi.EncryptedDocumentException;
 import org.apache.poi.hssf.usermodel.HSSFDateUtil;
@@ -27,7 +31,7 @@ public class ExcelReader {
 	// private String excelPath;
 	private Workbook wb;
 
-	public static final Map<String, Object> REFERENCE_DATA = new HashMap<String, Object>();
+	public static final Map<String, String> REFERENCE_DATA = new HashMap<String, String>();
 
 	public ExcelReader(String excelPath) throws IOException, EncryptedDocumentException, InvalidFormatException {
 		// this.excelPath = excelPath;
@@ -43,7 +47,17 @@ public class ExcelReader {
 		int rowCount = referenceDataSheet.getPhysicalNumberOfRows();
 		for (int r = referenceDataSheet.getFirstRowNum() + 1; r < rowCount; r++) {
 			Row row = referenceDataSheet.getRow(r);
-			REFERENCE_DATA.put((String) readCellData(row.getCell(0)), (String) readCellData(row.getCell(1)));
+			
+			String refKey = (String) readCellData(row.getCell(0));
+			String refValue = (String) readCellData(row.getCell(1));
+			
+			// format reference data here. 
+			// For Example, if you want to change data format, check the place holder name & format the value.
+			/*if("${userName}".equalsIgnoreCase(refKey)){
+				refValue = refValue.toUpperCase();
+			}*/
+			REFERENCE_DATA.put(refKey, refValue);
+						
 		}
 
 	}
@@ -104,38 +118,55 @@ public class ExcelReader {
 		List<String> headers = new ArrayList<String>();
 
 		boolean testDataFound = false;
-		for (int r = testDatasheet.getFirstRowNum(); r < rowCount; r++) {
-			Row row = testDatasheet.getRow(r);
+		for (int rowNum = testDatasheet.getFirstRowNum(); rowNum < rowCount; rowNum++) {
+			Row row = testDatasheet.getRow(rowNum);
 			String firstColumnValue = (row != null && row.getCell(0) != null) ? row.getCell(0).getStringCellValue()
 					: "";
 			if (firstColumnValue.trim().matches((testCaseName + Constants.TEST_CASE_START_MARKER))) {
 				testDataFound = true;
-				int r2 = r + 1;
-				for (; !testDatasheet.getRow(r2).getCell(0).getStringCellValue()
-						.matches((testCaseName + Constants.TEST_CASE_END_MARKER)); r2++) {
-					if (r2 == r + 1) {
+				int testCaseRowNum = rowNum + 1;
+				for (; !testDatasheet.getRow(testCaseRowNum).getCell(0).getStringCellValue()
+						.matches((testCaseName + Constants.TEST_CASE_END_MARKER)) && testCaseRowNum < rowCount; testCaseRowNum++) {
+					if (testCaseRowNum == rowNum + 1) {
 						// first row after test cases start marker; read header
-						for (int c = 0; c < testDatasheet.getRow(r2).getLastCellNum(); c++) {
-							if (!testDatasheet.getRow(r2).getCell(c).getStringCellValue().equalsIgnoreCase("")) {
-								headers.add(testDatasheet.getRow(r2).getCell(c).getStringCellValue());
+						for (int c = 0; c < testDatasheet.getRow(testCaseRowNum).getLastCellNum(); c++) {
+							if (!testDatasheet.getRow(testCaseRowNum).getCell(c).getStringCellValue().equalsIgnoreCase("")) {
+								headers.add(testDatasheet.getRow(testCaseRowNum).getCell(c).getStringCellValue());
 							}
 						}
 					} else {
 						Map<String, String> rowData = new LinkedHashMap<String, String>();
 						if (Constants.RUN_MODE_YES.equalsIgnoreCase(
-								testDatasheet.getRow(r2).getCell(0).getStringCellValue()) || includeRunModeNo) {
-							for (int c = 0; c < testDatasheet.getRow(r2).getLastCellNum() && c < headers.size(); c++) {
-								String value = (String) readCellData(testDatasheet.getRow(r2).getCell(c));
-								if (REFERENCE_DATA.containsKey(value)) {
-									value = (String) REFERENCE_DATA.get(value);
-								}
-								rowData.put(headers.get(c), value);
+								testDatasheet.getRow(testCaseRowNum).getCell(0).getStringCellValue()) || includeRunModeNo) {
+							for (int colNum = 0; colNum < testDatasheet.getRow(testCaseRowNum).getLastCellNum() && colNum < headers.size(); colNum++) {
+								String value = (String) readCellData(testDatasheet.getRow(testCaseRowNum).getCell(colNum));
+
+								Pattern re = Pattern.compile("\\$\\{([^}]+)\\}");
+								Matcher m = re.matcher(value);
+								if (m.groupCount() > 0) {
+									while (m.find()) {
+										String key = m.group();
+
+										if (REFERENCE_DATA.containsKey(key)) {
+											value = value.replace(key, REFERENCE_DATA.get(key));
+										}
+									}
+								} 
+								
+								// format test data here. 
+								// For Example, if you want to change particular column value format, 
+								// if testCaseName & column number matches, format the value
+								/*if("TestCase1".equalsIgnoreCase(testCaseName) && colNum == 2) {
+									value = String.format("%.04f",Double.parseDouble(value));
+								}*/
+								rowData.put(headers.get(colNum), value);
+								
 							}
 							testData.add(rowData);
 						}
 					}
 				}
-				r = r2;
+				rowNum = testCaseRowNum;
 			}
 			if (testDataFound) {
 				break;
@@ -155,7 +186,9 @@ public class ExcelReader {
 		Object value = null;
 		if (cell.getCellTypeEnum() == CellType.NUMERIC) {
 			if (HSSFDateUtil.isCellDateFormatted(cell)) {
-				value = cell.getDateCellValue().toString();
+				Date date = cell.getDateCellValue();
+				SimpleDateFormat sdf = new SimpleDateFormat(Constants.DATE_FORMAT_DDMMYYYY);
+				value = sdf.format(date);
 			} else {
 				value = Double.toString(cell.getNumericCellValue());
 			}
